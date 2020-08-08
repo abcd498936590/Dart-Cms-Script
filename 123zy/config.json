@@ -1,0 +1,22 @@
+{
+	"file": "app.js",
+	"name": "壹贰叁资源网",
+	"note": "采集接口速度比较快，推荐采集。",
+	"alias": "123zy",
+	"state": false,
+	"timeout": 7200000,
+	"pid": 0,
+	"runTime": "",
+	"options": {
+		"h": {
+			"key": "采集周期",
+			"type": "number",
+			"val": 0
+		},
+		"domain": {
+			"key": "采集接口",
+			"type": "string",
+			"val": "http://cj.123ku2.com:12315/inc/api.php"
+		}
+	}
+}

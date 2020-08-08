@@ -1,0 +1,22 @@
+{
+    "file": "app.js",
+    "name": "OK资源网",
+    "note": "OK资源网，采集速度一般，资源一般，不推荐优先采集。",
+    "alias": "okzy",
+    "state": false,
+    "timeout": 7200000,
+    "pid": 0,
+    "runTime": "",
+    "options": {
+        "h": {
+            "key": "采集周期",
+            "type": "number",
+            "val": 0
+        },
+        "domain": {
+            "key": "采集接口",
+            "type": "string",
+            "val": "http://cj.okzy.tv/inc/api.php"
+        }
+    }
+}
