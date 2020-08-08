@@ -1,3 +1,11 @@
+## Dart-Cms（完整项目）
+
+[Dart-Cms](https://github.com/abcd498936590/Dart-Cms)
+
+## Dart-Cms-Manage（后台）
+
+[后台管理系统部分(使用vue全家桶)](https://github.com/abcd498936590/Dart-Cms-Manage)
+
 ## Dart-Cms插件
 
 1：如何使用插件？
@@ -217,3 +225,9 @@ MongoClass(mainFn)，这个函数是在mongodb连接成功时候的回调函数�
 如果需要开发采集插件，可以在 Dart-Cms/script/ 下创建一个目录（非中文），里面需要有两个文件，app.js，config.json，请查看上面↑
 关于一些资源网采集接口的参数说明，比如123ku, http://cj.okzy.tv/inc/api.php?ac=videolist&pg=1，这里ac=videolist指的是获取所有视频列表，pg=1指的是当前数据的页码是1
 更多资料，需要自己查询对应的资源网，或者咨询资源网开发人员
+
+## 捐助一下失业的我
+<p align="center">
+    <img width="300" src="https://cdn.jsdelivr.net/gh/abcd498936590/pic@master/img/alipay.jpg" />
+    <img width="300" src="https://cdn.jsdelivr.net/gh/abcd498936590/pic@master/img/tenpay.jpg" />
+</p>
