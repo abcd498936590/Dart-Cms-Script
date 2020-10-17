@@ -7,7 +7,7 @@ const { MongoClass } = require('../../utils/mongo');
 const Entities = require('html-entities').XmlEntities;
 const to_json = require('xmljson').to_json;
 const entitiesCode = new Entities();
-const { mixinsScriptConfig, getBjDate, dateStringify } = require('../../utils/tools')
+const { mixinsScriptConfig, getBjDate, dateStringify, filterXSS } = require('../../utils/tools')
 
 // 封装一手request方法
 async function http(url){
@@ -71,13 +71,13 @@ let sourceManage = async (sList, videoListColl, pid, config) => {
 		if(!curItem['_']){
 			continue;
 		}
-		// let itemSource = curItem['_'].replace(/\$/g, '$' + config.options.analysis.val);
+		let itemSource = curItem['_'].replace(/\$/g, '$' + config.options.analysis.val);
 
 		// 检查z_name是否存在
 		let isExist = await videoListColl.findOne({vid: pid, z_name: itemName});
 		if(isExist){
 			let updateSource = {
-			    "list" : curItem['_']
+			    "list" : itemSource
 			}
 			await videoListColl.updateOne({vid: pid, z_name: itemName}, {$set: updateSource})
 		}else{
@@ -87,7 +87,7 @@ let sourceManage = async (sList, videoListColl, pid, config) => {
 			    "name" : map_keys[itemName],
 			    "z_name" : itemName,
 			    "type" : "iframe",
-			    "list" : curItem['_'],
+			    "list" : itemSource,
 			    "vid" : pid,    // insertResult.insertedId
 			}
 			await videoListColl.insertOne(sourceInfo);

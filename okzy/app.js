@@ -7,18 +7,28 @@ const { MongoClass } = require('../../utils/mongo');
 const Entities = require('html-entities').XmlEntities;
 const to_json = require('xmljson').to_json;
 const entitiesCode = new Entities();
-const { mixinsScriptConfig, getBjDate, dateStringify } = require('../../utils/tools')
+const { mixinsScriptConfig, getBjDate, dateStringify, filterXSS } = require('../../utils/tools')
 
+function filterXSS(str) {
+	return str
+	.replace(/&/g, '&amp;')
+	.replace(/ /g, '&nbsp;')
+	.replace(/</g, '&lt;')
+	.replace(/>/g, '&gt;')
+	.replace(/"/g, '&quot;')
+	.replace(/'/g, '&#39;')
+	.replace(/\r{0,}\n/g, '<br/>')
+}
 // 封装一手request方法
 async function http(url){
 	return new Promise((resolve, reject) => {
 		setTimeout(() => {
 			resolve(undefined)
-		}, 3000);
+		}, 15000);
 		axios({
 			method: 'GET',
 			url: url,
-			timeout: 3000,
+			timeout: 15000,
 		})
 		.then(res => {
 			if(res && res.status === 200){
@@ -36,7 +46,7 @@ async function http(url){
 	})
 }
 // 源管理
-let sourceManage = async (sList, videoListColl, pid, config) => {
+let sourceManage = async (sList, videoListColl, pid, Sconf) => {
 	// 如果源只有一项
 	if(sList['$'] && sList['_']){
 		let obj = sList;
@@ -57,9 +67,10 @@ let sourceManage = async (sList, videoListColl, pid, config) => {
 		if(!curItem['_']){
 			continue;
 		}
-		// let itemSource = curItem['_'].replace(/\$/g, '$' + config.options.analysis.val);
+		// let itemSource = curItem['_'].replace(/\$/g, '$' + Sconf.options.analysis.val);
 
 		// 检查z_name是否存在
+		let isExist = await videoListColl.findOne({vid: pid, z_name: itemName});
 		if(isExist){
 			let updateSource = {
 			    "list" : curItem['_']
@@ -81,7 +92,7 @@ let sourceManage = async (sList, videoListColl, pid, config) => {
 
 }
 // 每一条数据
-let getCurVideoData = async (v_info, conf, videoInfoColl, videoListColl, confColl, otherColl) => {
+let getCurVideoData = async (v_info, Sconf, videoInfoColl, videoListColl, confColl, otherColl) => {
 
 	let config = confColl.findOne({});
 	// 找到数据
@@ -97,7 +108,7 @@ let getCurVideoData = async (v_info, conf, videoInfoColl, videoListColl, confCol
 		// 更新信息
 		await videoInfoColl.updateOne({_id: isExist._id}, {$set: updateInfo});
 		// 源管理
-		await sourceManage(v_info.dl.dd, videoListColl, isExist._id, conf);
+		await sourceManage(v_info.dl.dd, videoListColl, isExist._id, Sconf);
 
 	}else{  // 新增
 
@@ -137,7 +148,7 @@ let getCurVideoData = async (v_info, conf, videoInfoColl, videoListColl, confCol
 		    // "sub_region" : v_info.area,
 		    "sub_region" : v_info.area,
 		    "rel_time" : testYear(v_info.year, config),
-		    "introduce" : v_info.des,
+		    "introduce" : filterXSS(v_info.des),
 		    "remind_tip" : v_info.note,
 		    "news_id" : [],
 		    "popular" : false,
@@ -152,7 +163,7 @@ let getCurVideoData = async (v_info, conf, videoInfoColl, videoListColl, confCol
 			return
 		}
 		// 源管理
-		await sourceManage(v_info.dl.dd, videoListColl, insertResult.insertedId, conf);
+		await sourceManage(v_info.dl.dd, videoListColl, insertResult.insertedId, Sconf);
 	}
 
 }
@@ -171,18 +182,18 @@ let testYear = (yStr, config) => {
 	}
 	return yStr
 }
-let getVideoListData = async (len, conf, videoInfoColl, videoListColl, confColl, otherColl) => {
+let getVideoListData = async (maxPageLen, Sconf, videoInfoColl, videoListColl, confColl, otherColl) => {
 
 
-	for(var i=1; i<=len; i++){
+	for(var i=1; i<=maxPageLen; i++){
 
 		let bool = true;
 
 		while(bool){
 
-			let body = await http(`${conf.options.domain.val}?ac=videolist&pg=${i}&h=${conf.options.h.val}`);
+			let body = await http(`${Sconf.options.domain.val}?ac=videolist&pg=${i}&h=${Sconf.options.h.val}`);
 			if(!body){
-				console.log(`列表页无内容，地址：${conf.options.domain.val}?ac=videolist&pg=${i}&h=${conf.options.h.val}`);
+				console.log(`列表页无内容，地址：${Sconf.options.domain.val}?ac=videolist&pg=${i}&h=${Sconf.options.h.val}`);
 				continue;
 			}
 			let list = await new Promise((res, rej)=>{
@@ -205,8 +216,8 @@ let getVideoListData = async (len, conf, videoInfoColl, videoListColl, confColl,
 
 			for(let attr in list){
 				let item = list[attr];
-				await getCurVideoData(item, conf, videoInfoColl, videoListColl, confColl, otherColl);
-				console.log(`第 ${i} 页，共 ${len} 页，第 ${Number(attr)+1} 条，名称： ${list[attr].name.trim()}`);
+				await getCurVideoData(item, Sconf, videoInfoColl, videoListColl, confColl, otherColl);
+				console.log(`第 ${i} 页，共 ${maxPageLen} 页，第 ${Number(attr)+1} 条，名称： ${list[attr].name.trim()}`);
 			}
 			break;
 		}
@@ -217,6 +228,7 @@ let mainFn = async (DB) => {
 	// 如果正在运行，直接退出，确保安全
 	let curConfPath = path.resolve(__dirname, './config.json');
 	let runConf = fse.readJsonSync(curConfPath);
+	let scriptAlias = runConf.alias;
 	if(runConf.state){
 		process.exit();
 	}
@@ -231,11 +243,11 @@ let mainFn = async (DB) => {
 		// 开始采集 => 配置中保存当前子进程的pid，用于手动停止
 	   	// 开始采集 => 保存当前运行脚本时间
 	   	// 开始采集 => 脚本状态设置为已启动
-	   	mixinsScriptConfig('okzy', {state: true, pid: process.pid, runTime: dateStringify(isBJtime)});
+	   	mixinsScriptConfig(scriptAlias, {state: true, pid: process.pid, runTime: dateStringify(isBJtime)});
 
-		let config = runConf;
+		let Sconf = runConf;
 		// 采集源 首页
-		let httpResult = await http(`${config.options.domain.val}?ac=videolist&h=${config.options.h.val}`).catch(err => {
+		let httpResult = await http(`${Sconf.options.domain.val}?ac=videolist&h=${Sconf.options.h.val}`).catch(err => {
 	   		reject(new Error('发生错误，位置：首页'))
 	   	});
 	   	// 获取总页码
@@ -251,12 +263,12 @@ let mainFn = async (DB) => {
 	   			res(data.rss.list.$);
 	   		})
 	   	}).catch(()=>{
-	   		process.exit();
+	   		reject();
 	   	})
 	   	// 最大采集时间
 	   	setTimeout(() => {
 	   		reject();
-	   	}, config.timeout);
+	   	}, Sconf.timeout);
 	   	// 正常
 	   	let videoInfoColl = DB.collection('video_info');
 	   	let videoListColl = DB.collection('video_list');
@@ -264,19 +276,20 @@ let mainFn = async (DB) => {
 
 	   	let maxPage = Number(httpResult.pagecount);
 
-	   	await getVideoListData(maxPage, config, videoInfoColl, videoListColl, confColl, otherColl);
+	   	console.log('采集开始！');
+	   	await getVideoListData(maxPage, Sconf, videoInfoColl, videoListColl, confColl, otherColl);
 	   	console.log('采集完成！');
 
 		resolve();
 	}).then(res => {
 		// 把采集状态 改成 停止
-		mixinsScriptConfig('okzy', {state: false});
+		mixinsScriptConfig(scriptAlias, {state: false});
 		// 停止
 		process.exit();
 	}).catch(err => {
 		console.log(err);
 		// 把采集状态 改成 停止
-		mixinsScriptConfig('okzy', {state: false});
+		mixinsScriptConfig(scriptAlias, {state: false});
 		// 停止
 		process.exit();
 	})

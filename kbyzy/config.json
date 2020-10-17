@@ -1,0 +1,27 @@
+{
+	"file": "app.js",
+	"name": "恐怖鸭资源网",
+	"note": "恐怖鸭文章采集插件，采集文章。",
+	"alias": "kbyzy",
+	"state": false,
+	"timeout": 7200000,
+	"pid": 0,
+	"runTime": "",
+	"options": {
+		"h": {
+			"key": "采集周期",
+			"type": "number",
+			"val": 0
+		},
+		"type": {
+			"key": "绑定分类",
+			"type": "string",
+			"val": "新闻"
+		},
+		"domain": {
+			"key": "采集接口",
+			"type": "string",
+			"val": "https://ya.kongbuya.com/api.php/provide/art/"
+		}
+	}
+}
