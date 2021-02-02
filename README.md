@@ -223,7 +223,7 @@ MongoClass(mainFn)，这个函数是在mongodb连接成功时候的回调函数�
 
 很多资源网都是公开采集的，打开那些资源网，都会有帮助中心，或者采集教程，会有对应的采集接口地址
 如果需要开发采集插件，可以在 Dart-Cms/script/ 下创建一个目录（非中文），里面需要有两个文件，app.js，config.json，请查看上面↑
-关于一些资源网采集接口的参数说明，比如123ku, http://cj.okzy.tv/inc/api.php?ac=videolist&pg=1，这里ac=videolist指的是获取所有视频列表，pg=1指的是当前数据的页码是1
+关于一些资源网采集接口的参数说明，比如123ku, http://cj.okzy.tv/inc/api.php?ac=videolist&pg=1 ，这里ac=videolist指的是获取所有视频列表，pg=1指的是当前数据的页码是1
 更多资料，需要自己查询对应的资源网，或者咨询资源网开发人员
 
 ## 捐助一下失业的我
