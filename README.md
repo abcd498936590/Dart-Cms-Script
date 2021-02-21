@@ -77,9 +77,9 @@
 ```
 ## 插件config字段下的options里面的字段在后台管理系统中的演示，如下图
 
-<p>
-	<img width="380" src="https://cdn.jsdelivr.net/gh/abcd498936590/pic@master/img/dart-cms-11.png" />
-	<img width="380" src="https://cdn.jsdelivr.net/gh/abcd498936590/pic@master/img/dart-cms-12.png" />
+<p align="center">
+	<img src="https://cdn.jsdelivr.net/gh/abcd498936590/pic@master/img/dart-cms-11.png" />
+	<img src="https://cdn.jsdelivr.net/gh/abcd498936590/pic@master/img/dart-cms-12.png" />
 </p>
 
 ## Cms中已经开放给你的工具函数有哪些？
