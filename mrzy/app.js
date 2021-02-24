@@ -9,6 +9,10 @@ const to_json = require('xmljson').to_json;
 const entitiesCode = new Entities();
 const { mixinsScriptConfig, getBjDate, dateStringify, filterXSS } = require('../../utils/tools')
 
+
+let sTypeGroup = null; // 绑定的分类
+let map_keys = null;   // 源别名
+
 // 封装一手request方法
 async function http(url){
 	return new Promise((resolve, reject) => {
@@ -44,18 +48,10 @@ let sourceManage = async (sList, videoListColl, pid, config) => {
 			'0': obj
 		}
 	}
-	let map_keys = {
-		qq: '腾讯视频',
-		qiyi: '爱奇艺',
-		youku: '优酷视频',
-		mgtv: '芒果TV',
-		sohu: '搜狐视频',
-		pptv: 'PP视频',
-		letv: '乐视视频'
-	}
 	for(let attr in sList){
 
 		let curItem = sList[attr];
+		// 检查源xml是否正确，发生错误，跳过
 		try{
 			var itemName = curItem['$']['flag'];
 		}catch(err){
@@ -98,11 +94,26 @@ let sourceManage = async (sList, videoListColl, pid, config) => {
 // 每一条数据
 let getCurVideoData = async (v_info, conf, videoInfoColl, videoListColl, confColl, otherColl) => {
 
+	// 先判断当前视频所在的分类是否绑定了，未绑定，直接略过，绑定则查看绑定的分类是否正确
+	let isBindType = (sTypeGroup[v_info.type]).trim();
+	// 不存在 => 未绑定，存在不是字符串，存在，是字符串，但是id长度不符合要求
+	if(!isBindType || typeof isBindType !== 'string' || typeof isBindType === 'string' && isBindType.length !== 24){
+		return
+	}
+
+	// 存在，长度符合要求，再次查看该id分类是否在表中，不在略过
+	// 注意这里，查询条件，如果是视频 + nav_type: "video" ，如果是文章 + nav_type: "article"
+	let existType = await otherColl.findOne({_id: new ObjectID(isBindType), type: "nav_type", nav_type: "video"});
+	// 绑定的分类，已经不存在表中（被删除），那么也略过本条
+	if(!existType){
+		return
+	}
+
 	let config = confColl.findOne({});
 	// 找到数据
-	let isExist = await videoInfoColl.findOne({videoTitle: v_info.name.trim()});
+	let isExistVideo = await videoInfoColl.findOne({videoTitle: v_info.name.trim()});
 
-	if(isExist){  // 更新
+	if(isExistVideo){  // 更新
 
 		let updateInfo = {
 		    // "videoImage" : v_info.pic,
@@ -110,17 +121,14 @@ let getCurVideoData = async (v_info, conf, videoInfoColl, videoListColl, confCol
 		    "remind_tip" : v_info.note,
 		}
 		// 更新信息
-		await videoInfoColl.updateOne({_id: isExist._id}, {$set: updateInfo});
+		await videoInfoColl.updateOne({_id: isExistVideo._id}, {$set: updateInfo});
 		// 源管理
-		await sourceManage(v_info.dl.dd, videoListColl, isExist._id, conf);
+		await sourceManage(v_info.dl.dd, videoListColl, isExistVideo._id, conf);
 
 	}else{  // 新增
 
-		let type_id = await otherColl.findOne({name: v_info.type, type: 'nav_type', display: true});
-		if(!type_id){
-			return
-		}
-		let v_dir = (v_info.director && typeof v_info.director === 'string') ? v_info.director.split(/\/|\s|,|·|\s/g) : [];
+		// 格式化 - 导演
+		let v_dir = (v_info.director && typeof v_info.director === 'string') ? v_info.director.split(/\/|-|\s|,|·|\s/g) : [];
 		let newV_dir = [];
 		for(let arg of v_dir){
 			let val = arg.trim();
@@ -128,7 +136,8 @@ let getCurVideoData = async (v_info, conf, videoInfoColl, videoListColl, confCol
 				newV_dir.push(val)
 			}
 		}
-		let v_actor = (v_info.actor && typeof v_info.actor === 'string') ? v_info.actor.split(/\/|\s|,|·|\s/g) : [];
+		// 格式化 - 演员
+		let v_actor = (v_info.actor && typeof v_info.actor === 'string') ? v_info.actor.split(/\/|-|\s|,|·|\s/g) : [];
 		let newV_actor = [];
 		for(let arg of v_actor){
 			let val = arg.trim();
@@ -136,23 +145,25 @@ let getCurVideoData = async (v_info, conf, videoInfoColl, videoListColl, confCol
 				newV_actor.push(val)
 			}
 		}
+		// 语言，只存第一项
+		let v_language = (v_info.lang && typeof v_info.lang === 'string') ? v_info.lang.split(/\/|-|\s|,|·|\s/g) : [""];
+		// 发布地区，只存第一项
+		let v_sub_region = (v_info.area && typeof v_info.area === 'string') ? v_info.area.split(/\/|-|\s|,|·|\s/g) : [""];
 
 		let insertInfo = {
-			"videoTitle" : v_info.name.trim(),
+			"videoTitle" : filterXSS(v_info.name.trim()),
 		    "director" : newV_dir.join(','),
 		    "videoImage" : v_info.pic,
 		    "poster" : "",
 		    "video_tags" : [],
 		    "performer" : newV_actor.join(','),
-		    "video_type" : type_id._id,
+		    "video_type" : existType._id,
 		    "video_rate" : 0,
 		    "update_time" : v_info.last,
-		    // "language" : v_info.lang,
-		    "language" : "",
-		    // "sub_region" : v_info.area,
-		    "sub_region" : "",
+		    "language" : v_language[0],
+		    "sub_region" : v_sub_region[0],
 		    "rel_time" : testYear(v_info.year, config),
-		    "introduce" : v_info.des,
+		    "introduce" : filterXSS(v_info.des),
 		    "remind_tip" : v_info.note,
 		    "news_id" : [],
 		    "popular" : false,
@@ -232,6 +243,7 @@ let mainFn = async (DB) => {
 	// 如果正在运行，直接退出，确保安全
 	let curConfPath = path.resolve(__dirname, './config.json');
 	let runConf = fse.readJsonSync(curConfPath);
+	let scriptAlias = runConf.alias;
 	if(runConf.state){
 		process.exit();
 	}
@@ -246,7 +258,7 @@ let mainFn = async (DB) => {
 		// 开始采集 => 配置中保存当前子进程的pid，用于手动停止
 	   	// 开始采集 => 保存当前运行脚本时间
 	   	// 开始采集 => 脚本状态设置为已启动
-	   	mixinsScriptConfig('mrzy', {state: true, pid: process.pid, runTime: dateStringify(isBJtime)});
+	   	mixinsScriptConfig(scriptAlias, {state: true, pid: process.pid, runTime: dateStringify(isBJtime)});
 
 		let config = runConf;
 		// 采集源 首页
@@ -276,6 +288,9 @@ let mainFn = async (DB) => {
 	   	let videoInfoColl = DB.collection('video_info');
 	   	let videoListColl = DB.collection('video_list');
 	   	let otherColl = DB.collection('other');
+	   	// 分类
+	   	sTypeGroup = Sconf.options.bindType.list;
+	   	map_keys = JSON.parse(Sconf.options.keys.val);
 
 	   	let maxPage = Number(httpResult.pagecount);
 
@@ -285,13 +300,13 @@ let mainFn = async (DB) => {
 		resolve();
 	}).then(res => {
 		// 把采集状态 改成 停止
-		mixinsScriptConfig('mrzy', {state: false});
+		mixinsScriptConfig(scriptAlias, {state: false});
 		// 停止
 		process.exit();
 	}).catch(err => {
 		console.log(err);
 		// 把采集状态 改成 停止
-		mixinsScriptConfig('mrzy', {state: false});
+		mixinsScriptConfig(scriptAlias, {state: false});
 		// 停止
 		process.exit();
 	})

@@ -9,6 +9,9 @@ const to_json = require('xmljson').to_json;
 const entitiesCode = new Entities();
 const { mixinsScriptConfig, getBjDate, dateStringify, filterXSS } = require('../../utils/tools')
 
+
+let sTypeGroup = null; // 绑定的分类
+
 // 封装一手request方法
 async function http(url){
 	return new Promise((resolve, reject) => {
@@ -37,9 +40,23 @@ async function http(url){
 }
 // 获取源
 // 每一条数据
-let getCurArtData = async (artItem, Sconf, articleInfo, articleList, confColl, otherColl, bindType) => {
+let getCurArtData = async (artItem, Sconf, articleInfo, articleList, configData, otherColl) => {
 
-	let SqlConf = confColl.findOne({});
+	// 先判断当前视频所在的分类是否绑定了，未绑定，直接略过，绑定则查看绑定的分类是否正确
+	let isBindType = (sTypeGroup[artItem.type_name]).trim();
+	// 不存在 => 未绑定，存在不是字符串，存在，是字符串，但是id长度不符合要求
+	if(!isBindType || typeof isBindType !== 'string' || typeof isBindType === 'string' && isBindType.length !== 24){
+		return
+	}
+
+	// 存在，长度符合要求，再次查看该id分类是否在表中，不在略过
+	// 注意这里，查询条件，如果是视频 + nav_type: "video" ，如果是文章 + nav_type: "article"
+	let existType = await otherColl.findOne({_id: new ObjectID(isBindType), type: "nav_type", nav_type: "article"});
+	// 绑定的分类，已经不存在表中（被删除），那么也略过本条
+	if(!existType){
+		return
+	}
+
 	// 找到数据
 	let isExist = await articleInfo.findOne({articleTitle: artItem.art_name.trim()});
 
@@ -73,7 +90,7 @@ let getCurArtData = async (artItem, Sconf, articleInfo, articleList, confColl, o
 				"articleTitle" : artItem.art_name.trim(),
 			    "articleImage" : artItem.art_pic,
 			    "poster" : "",
-			    "article_type" : bindType._id,
+			    "article_type" : existType._id,
 			    "introduce" : art_con.art_blurb,
 			    "update_time" : art_con.art_time,
 			    "video_id" : [],
@@ -92,10 +109,8 @@ let getCurArtData = async (artItem, Sconf, articleInfo, articleList, confColl, o
 		}
 	}
 
-
-
 }
-let getArtListData = async (maxPageLen, Sconf, articleInfo, articleList, confColl, otherColl, bindType) => {
+let getArtListData = async (maxPageLen, Sconf, articleInfo, articleList, configData, otherColl) => {
 
 	for(var i=1; i<=maxPageLen; i++){
 
@@ -125,7 +140,7 @@ let getArtListData = async (maxPageLen, Sconf, articleInfo, articleList, confCol
 		   	}
 
 			for(let [index, item] of list.entries()){
-				await getCurArtData(item, Sconf, articleInfo, articleList, confColl, otherColl, bindType);
+				await getCurArtData(item, Sconf, articleInfo, articleList, configData, otherColl);
 				console.log(`第 ${i} 页，共 ${maxPageLen} 页，第 ${index+1} 条，名称： ${item.art_name.trim()}`);
 			}
 			break;
@@ -176,16 +191,13 @@ let mainFn = async (DB) => {
 	   	let articleList = DB.collection('article_list');
 	   	let otherColl = DB.collection('other');
 
-	   	// 找配置里绑定的文章分类
-	   	let searchArtType = await otherColl.findOne({type: 'nav_type', display : true, name: runConf.options.type.val});
-	   	// 如果没有找到绑定的文章分类
-	   	if(!searchArtType){
-	   		reject();
-	   	}
+
 	   	let maxPage = Number(httpResult.pagecount);
+	   	// 存分类
+	   	sTypeGroup = Sconf.options.bindType.list;
 
 	   	console.log('采集开始！');
-	   	await getArtListData(maxPage, Sconf, articleInfo, articleList, confColl, otherColl, searchArtType);
+	   	await getArtListData(maxPage, Sconf, articleInfo, articleList, configData, otherColl);
 	   	console.log('采集完成！');
 
 		resolve();
