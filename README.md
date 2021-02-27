@@ -4,6 +4,7 @@
 * [Dart-Cms-Manage](https://github.com/abcd498936590/Dart-Cms-Manage)   =>> Dart-Cms后台管理系统页面部分
 * [Dart-Cms-Flutter](https://github.com/abcd498936590/Dart-Cms-Flutter)  =>> Dart-Cms的安卓客户端，使用flutter开发
 * [flutter fijkplayer](https://github.com/abcd498936590/fijkplayer_skin)  =>> Flutter fijkplayer的一款皮肤
+* [electron-audio-create](https://github.com/abcd498936590/electron-audio-create)  =>> 使用 React + Electron 开发的 AI 配音软件
 
 
 ## Dart-Cms插件
