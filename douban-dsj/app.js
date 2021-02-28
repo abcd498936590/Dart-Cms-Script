@@ -8,16 +8,19 @@ const Entities = require('html-entities').XmlEntities;
 const entitiesCode = new Entities();
 const { mixinsScriptConfig, getBjDate, dateStringify } = require('../../utils/tools')
 
+let interval = 0;      // 间隔时间
+let year_list = [];    // 年代列表
+
 // 封装一手request方法
 async function http(url){
 	return new Promise((resolve, reject) => {
 		setTimeout(() => {
 			resolve(undefined)
-		}, 3000);
+		}, 15000);
 		axios({
 			method: 'GET',
 			url: url,
-			timeout: 3000,
+			timeout: 15000,
 		})
 		.then(res => {
 			if(res && res.status === 200){
@@ -37,7 +40,7 @@ async function http(url){
 let getVideoListData = async (conf, videoInfoColl, confColl) => {
 
 	// let type_list = ['电影', '电视剧', '综艺', '动漫', '纪录片', '短片'];
-	let year_list = ['2020', '2019', '2018', '2017', '2016', '2015', '2014', '2013', '2012', '2010', '2009', '2008', '2007', '2006', '2005', '2004', '2003', '2002', '2001', '2000'];
+	// let year_list = ['2020', '2019', '2018', '2017', '2016', '2015', '2014', '2013', '2012', '2010', '2009', '2008', '2007', '2006', '2005', '2004', '2003', '2002', '2001', '2000'];
 
 	for(let curYear of year_list){
 
@@ -49,6 +52,8 @@ let getVideoListData = async (conf, videoInfoColl, confColl) => {
 
 				await new Promise(async (res, rej) => {
 
+					let interValNum = interval * 1000;
+					// 采集频率
 					setTimeout(async () => {
 
 						let body = await http(`${conf.options.domain.val}&start=${i}&year_range=${curYear},${curYear}`);
@@ -59,7 +64,7 @@ let getVideoListData = async (conf, videoInfoColl, confColl) => {
 							return rej();
 						}
 
-					},60000);
+					}, interValNum);
 
 				})
 				.then(async (body) => {
@@ -107,6 +112,7 @@ let mainFn = async (DB) => {
 	// 如果正在运行，直接退出，确保安全
 	let curConfPath = path.resolve(__dirname, './config.json');
 	let runConf = fse.readJsonSync(curConfPath);
+	let scriptAlias = runConf.alias;
 	if(runConf.state){
 		process.exit();
 	}
@@ -121,29 +127,33 @@ let mainFn = async (DB) => {
 		// 开始采集 => 配置中保存当前子进程的pid，用于手动停止
 	   	// 开始采集 => 保存当前运行脚本时间
 	   	// 开始采集 => 脚本状态设置为已启动
-	   	mixinsScriptConfig('douban-dsj', {state: true, pid: process.pid, runTime: dateStringify(isBJtime)});
+	   	mixinsScriptConfig(scriptAlias, {state: true, pid: process.pid, runTime: dateStringify(isBJtime)});
 
-		let config = runConf;
+		let Sconf = runConf;
 
+	   	let timeout = Sconf.timeout * 60000;
 	   	// 最大采集时间
 	   	setTimeout(() => {
 	   		reject();
-	   	}, config.timeout);
+	   	}, timeout);
 	   	// 正常
 	   	let videoInfoColl = DB.collection('video_info');
+	   	// 存配置
+	   	interval = Sconf.options.interval.val;
+	   	year_list = (Sconf.options.year_list.trim()).split(',');
 
-	   	await getVideoListData(config, videoInfoColl, confColl);
+	   	await getVideoListData(Sconf, videoInfoColl, confColl);
 	   	console.log('采集完成！');
 
 		resolve();
 	}).then(res => {
 		// 把采集状态 改成 停止
-		mixinsScriptConfig('douban-dsj', {state: false});
+		mixinsScriptConfig(scriptAlias, {state: false});
 		// 停止
 		process.exit();
 	}).catch(err => {
 		// 把采集状态 改成 停止
-		mixinsScriptConfig('douban-dsj', {state: false});
+		mixinsScriptConfig(scriptAlias, {state: false});
 		// 停止
 		process.exit();
 	})

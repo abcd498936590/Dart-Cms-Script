@@ -4,14 +4,26 @@
 	"note": "豆瓣电影评分采集，豆瓣限制访问频率，每五分钟访问一次。",
 	"alias": "douban-dy",
 	"state": false,
-	"timeout": 10800000,
+	"timeout": 180,
 	"pid": 0,
 	"runTime": "",
 	"options": {
+		"interval": {
+			"key": "采集频率",
+			"type": "number",
+			"val": 300,
+			"note": "豆瓣接口有访问频率限制。单位（秒）"
+		},
 		"domain": {
 			"key": "采集接口",
 			"type": "string",
 			"val": "https://movie.douban.com/j/new_search_subjects?sort=U&range=0,10&tags=%E7%94%B5%E5%BD%B1"
+		},
+		"year_list": {
+			"key": "年代列表",
+			"type": "string",
+			"val": "2021,2020,2019,2018,2017,2016,2015,2014,2013,2012,2011,2010,2009,2008,2007,2006,2005,2004,2003,2002,2001,2000,1999,1998,1997,1996,1995",
+			"note": "年代列表中间使用 英文逗号（,）分隔开"
 		}
 	}
 }

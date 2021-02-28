@@ -15,6 +15,7 @@ let allPluck = false;  // 是否双向采集
 let sTypeGroup = null; // 绑定的分类
 let sKeysGroup = null; // 源分类判断 vals
 let SValsGroup = null; // 源分类判断 keys
+let interval = 0;      // 间隔时间
 
 // 封装一手request方法
 async function http(url){
@@ -243,6 +244,13 @@ let getVideoListData = async (maxPageLen, Sconf, videoInfoColl, videoListColl, c
 				let item = list[attr];
 				await getCurVideoData(item, Sconf, videoInfoColl, videoListColl, confColl, otherColl);
 				console.log(`第 ${i} 页，共 ${maxPageLen} 页，第 ${Number(attr)+1} 条，名称： ${list[attr].name.trim()}`);
+				// 采集频率
+				let interValNum = interval * 1000;
+				await new Promise((resolve, reject) => {
+					setTime(() => {
+						return resolve();
+					}, interValNum);
+				})
 			}
 			break;
 		}
@@ -290,10 +298,11 @@ let mainFn = async (DB) => {
 	   	}).catch(()=>{
 	   		reject()
 	   	})
+	   	let timeout = Sconf.timeout * 60000;
 	   	// 最大采集时间
 	   	setTimeout(() => {
 	   		reject();
-	   	}, Sconf.timeout);
+	   	}, timeout);
 	   	// 正常
 	   	let videoInfoColl = DB.collection('video_info');
 	   	let videoListColl = DB.collection('video_list');
@@ -304,6 +313,7 @@ let mainFn = async (DB) => {
 	   	sTypeGroup = Sconf.options.bindType.list;
 	   	sKeysGroup = JSON.parse(Sconf.options.allPluck.sKey);
 	   	SValsGroup = JSON.parse(Sconf.options.allPluck.sVal);
+	   	interval = Sconf.options.interval.val;
 
 	   	let maxPage = Number(httpResult.pagecount);
 

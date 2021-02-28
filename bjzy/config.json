@@ -4,10 +4,16 @@
 	"note": "采集资源速度比较快，推荐采集。",
 	"alias": "bjzy",
 	"state": false,
-	"timeout": 7200000,
+	"timeout": 180,
 	"pid": 0,
 	"runTime": "",
 	"options": {
+		"interval": {
+			"key": "采集频率",
+			"type": "number",
+			"val": 0,
+			"note": "有的资源网限制频率，自行定夺。单位（秒）"
+		},
 		"h": {
 			"key": "采集周期",
 			"type": "number",

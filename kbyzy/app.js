@@ -11,6 +11,7 @@ const { mixinsScriptConfig, getBjDate, dateStringify, filterXSS } = require('../
 
 
 let sTypeGroup = null; // 绑定的分类
+let interval = 0;      // 间隔时间
 
 // 封装一手request方法
 async function http(url){
@@ -142,6 +143,13 @@ let getArtListData = async (maxPageLen, Sconf, articleInfo, articleList, configD
 			for(let [index, item] of list.entries()){
 				await getCurArtData(item, Sconf, articleInfo, articleList, configData, otherColl);
 				console.log(`第 ${i} 页，共 ${maxPageLen} 页，第 ${index+1} 条，名称： ${item.art_name.trim()}`);
+				// 采集频率
+				let interValNum = interval * 1000;
+				await new Promise((resolve, reject) => {
+					setTime(() => {
+						return resolve();
+					}, interValNum);
+				})
 			}
 			break;
 		}
@@ -182,19 +190,20 @@ let mainFn = async (DB) => {
 	   	}).catch(()=>{
 	   		reject()
 	   	})
+	   	let timeout = Sconf.timeout * 60000;
 	   	// 最大采集时间
 	   	setTimeout(() => {
 	   		reject();
-	   	}, Sconf.timeout);
+	   	}, timeout);
 	   	// 正常
 	   	let articleInfo = DB.collection('article_info');
 	   	let articleList = DB.collection('article_list');
 	   	let otherColl = DB.collection('other');
 
-
 	   	let maxPage = Number(httpResult.pagecount);
-	   	// 存分类
+	   	// 存配置
 	   	sTypeGroup = Sconf.options.bindType.list;
+	   	interval = Sconf.options.interval.val;
 
 	   	console.log('采集开始！');
 	   	await getArtListData(maxPage, Sconf, articleInfo, articleList, configData, otherColl);

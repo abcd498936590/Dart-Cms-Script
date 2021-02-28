@@ -12,17 +12,18 @@ const { mixinsScriptConfig, getBjDate, dateStringify, filterXSS } = require('../
 
 let sTypeGroup = null; // 绑定的分类
 let map_keys = null;   // 源别名
+let interval = 0;      // 间隔时间
 
 // 封装一手request方法
 async function http(url){
 	return new Promise((resolve, reject) => {
 		setTimeout(() => {
 			resolve(undefined)
-		}, 3000);
+		}, 15000);
 		axios({
 			method: 'GET',
 			url: url,
-			timeout: 3000,
+			timeout: 15000,
 		})
 		.then(res => {
 			if(res && res.status === 200){
@@ -233,6 +234,13 @@ let getVideoListData = async (len, conf, videoInfoColl, videoListColl, confColl,
 				let item = list[attr];
 				await getCurVideoData(item, conf, videoInfoColl, videoListColl, confColl, otherColl);
 				console.log(`第 ${i} 页，共 ${len} 页，第 ${Number(attr)+1} 条，名称： ${list[attr].name.trim()}`);
+				// 采集频率
+				let interValNum = interval * 1000;
+				await new Promise((resolve, reject) => {
+					setTime(() => {
+						return resolve();
+					}, interValNum);
+				})
 			}
 			break;
 		}
@@ -260,9 +268,9 @@ let mainFn = async (DB) => {
 	   	// 开始采集 => 脚本状态设置为已启动
 	   	mixinsScriptConfig(scriptAlias, {state: true, pid: process.pid, runTime: dateStringify(isBJtime)});
 
-		let config = runConf;
+		let Sconf = runConf;
 		// 采集源 首页
-		let httpResult = await http(`${config.options.domain.val}?ac=videolist&h=${config.options.h.val}`).catch(err => {
+		let httpResult = await http(`${Sconf.options.domain.val}?ac=videolist&h=${Sconf.options.h.val}`).catch(err => {
 	   		reject(new Error('发生错误，位置：首页'))
 	   	});
 	   	// 获取总页码
@@ -280,21 +288,23 @@ let mainFn = async (DB) => {
 	   	}).catch(()=>{
 	   		process.exit();
 	   	})
+	   	let timeout = Sconf.timeout * 60000;
 	   	// 最大采集时间
 	   	setTimeout(() => {
 	   		reject();
-	   	}, config.timeout);
+	   	}, timeout);
 	   	// 正常
 	   	let videoInfoColl = DB.collection('video_info');
 	   	let videoListColl = DB.collection('video_list');
 	   	let otherColl = DB.collection('other');
-	   	// 分类
+	   	// 存配置
 	   	sTypeGroup = Sconf.options.bindType.list;
 	   	map_keys = JSON.parse(Sconf.options.keys.val);
+	   	interval = Sconf.options.interval.val;
 
 	   	let maxPage = Number(httpResult.pagecount);
 
-	   	await getVideoListData(maxPage, config, videoInfoColl, videoListColl, confColl, otherColl);
+	   	await getVideoListData(maxPage, Sconf, videoInfoColl, videoListColl, confColl, otherColl);
 	   	console.log('采集完成！');
 
 		resolve();
