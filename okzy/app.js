@@ -69,7 +69,7 @@ let sourceManage = async (sList, videoListColl, pid, Sconf) => {
 
 		// 是否只采集 源（m3u8）,
 		// 如果本条源不是 源地址，而是播放器链接，并且没有开启双向采集，那么，略过
-		if(!allPluck && itemName === sKeysGroup["player"]){
+		if(!allPluck && itemName !== sKeysGroup["player"]){
 			continue;
 		}
 

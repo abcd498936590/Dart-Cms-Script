@@ -11,7 +11,7 @@
 		"interval": {
 			"key": "采集频率",
 			"type": "number",
-			"val": 0,
+			"val": 1,
 			"note": "有的资源网限制频率，自行定夺。单位（秒）"
 		},
 		"h": {
@@ -31,7 +31,7 @@
 		"group": {
 			"key": "源名称组",
 			"type": "string",
-			"val": "{\"player\":\"直链\",\"iframe\":\"播放器\"}",
+			"val": "{\"player\":\"OK直链\",\"iframe\":\"OK播放器\"}",
 			"note": "标准JSON格式。例 {\"player\":\"直链\",\"iframe\":\"播放器\"}"
 		},
 		"domain": {
