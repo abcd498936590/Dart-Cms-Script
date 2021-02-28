@@ -237,7 +237,7 @@ let getVideoListData = async (len, conf, videoInfoColl, videoListColl, confColl,
 				// 采集频率
 				let interValNum = interval * 1000;
 				await new Promise((resolve, reject) => {
-					setTime(() => {
+					setTimeout(() => {
 						return resolve();
 					}, interValNum);
 				})
