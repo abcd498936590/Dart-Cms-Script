@@ -141,7 +141,7 @@ let mainFn = async (DB) => {
 	   	let videoInfoColl = DB.collection('video_info');
 	   	// 存配置
 	   	interval = Sconf.options.interval.val;
-	   	year_list = (Sconf.options.year_list.trim()).split(',');
+	   	year_list = (Sconf.options.year_list.val.trim()).split(',');
 
 	   	await getVideoListData(Sconf, videoInfoColl, confColl);
 	   	console.log('采集完成！');
