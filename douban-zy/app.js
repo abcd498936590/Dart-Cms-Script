@@ -52,48 +52,43 @@ let getVideoListData = async (conf, videoInfoColl, confColl) => {
 
 				await new Promise(async (res, rej) => {
 
-					let interValNum = interval * 1000;
-					// 采集频率
-					setTimeout(async () => {
+					let body = await http(`${conf.options.domain.val}&start=${i}&year_range=${curYear},${curYear}`);
 
-						let body = await http(`${conf.options.domain.val}&start=${i}&year_range=${curYear},${curYear}`);
-
-						if(body && body.data && body.data.length){
-							return res(body.data);
-						}else{
-							return rej();
-						}
-
-					}, interValNum);
+					if(body && body.data && body.data.length){
+						return res(body.data);
+					}else{
+						return rej();
+					}
 
 				})
 				.then(async (body) => {
 
 					for(let arg of body){
 
-						let movieName = arg.title;
-
-						let searchResult = await videoInfoColl.aggregate([
-							{
-						        $match: {
-						        	videoTitle: {
-						        		$regex: movieName,
-						        		$options: "$i"
-					        		}
-						        }
-						    }
-					    ]).toArray();
-					    // 有
-					    if(searchResult.length){
-					    	let upRate = arg.rate ? Number(arg.rate) : 0;
-					    	let queryIdArr = searchResult.map(val => {
-					    		return val._id
-					    	})
-					    	let upResult = await videoInfoColl.updateMany({_id: {$in: queryIdArr}}, {$set: {video_rate: upRate}});
-					    	if(upResult.result.ok === 1){
-					    		console.log(`当前分类：综艺，年代：${curYear}，视频名称：${movieName}`);
-					    	}
-					    }
+						let movieName = arg.title.trim();
+						// 查找视频
+					 	let searchResult = await videoInfoColl.findOne({videoTitle: movieName});
+					 	// 分数
+					 	let upRate = arg.rate ? Number(arg.rate).toFixed(1) : 0;
+					 	// 是否更新
+					 	let curIsUpdate = false;
+					 	// 有
+					 	if(searchResult && upRate > 0){
+					 		let _id = searchResult._id;
+					 		// 等待更新
+					 		await videoInfoColl.updateOne({_id}, {$set: {video_rate: upRate}})
+					 			.then((upResult) => {
+					 				if(upResult.result.ok === 1){
+					 					curIsUpdate = true;
+					 					return
+					 				}
+					 				curIsUpdate = false;
+					 			})
+					 			.catch(() => {
+					 				curIsUpdate = false;
+					 			});
+					 	}
+					 	console.log(`当前分类：综艺，年代：${curYear}，是否更新：${curIsUpdate}，分数：${upRate}，视频名称：${movieName}`);
 					}
 					bool = false;
 				})
@@ -102,6 +97,13 @@ let getVideoListData = async (conf, videoInfoColl, confColl) => {
 					console.log(`列表页无内容，地址：${conf.options.domain.val}&start=${i}&year_range=${curYear},${curYear}`);
 				})
 
+				let interValNum = interval * 1000;
+				// 采集间隔
+				await new Promise((resolve, reject) => {
+					setTimeout(async () => {
+						return resolve();
+					}, interValNum);
+				})
 			}
 		}
 
@@ -119,7 +121,7 @@ let mainFn = async (DB) => {
 	// 箭头函数 与 promise = 狗币
 	return new Promise(async (resolve, reject) => {
 
-		let confColl = DB.collection('config');
+	   	let confColl = DB.collection('config');
 
 	   	let configData = await confColl.findOne({}); //
 		let isBJtime = configData.isBjTime;          //

@@ -11,7 +11,7 @@
 		"interval": {
 			"key": "采集频率",
 			"type": "number",
-			"val": 300,
+			"val": 60,
 			"note": "豆瓣接口有访问频率限制。单位（秒）"
 		},
 		"domain": {
