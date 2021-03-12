@@ -1,0 +1,41 @@
+{
+	"file": "app.js",
+	"name": "YouTube资源采集插件",
+	"note": "YouTube频道资源采集，需要申请YouTube api Key",
+	"alias": "youtube",
+	"state": false,
+	"timeout": 600,
+	"pid": 0,
+	"runTime": "",
+	"options": {
+		"interval": {
+			"key": "采集频率",
+			"type": "number",
+			"val": 1,
+			"note": "有的资源网限制频率，自行定夺。单位（秒）"
+		},
+		"ids": {
+			"key": "绑定频道",
+			"type": "textarea",
+			"val": "[]",
+			"note": "标准json格式，最外层一定要是数组。字段 id(youtube频道id) typeName(类型名称) runRegexp(关键词匹配) regexpVal(关键词) runState(是否采集当前频道)。regexpVal关键词多个使用英文逗号(,)分隔开"
+		},
+		"alias": {
+			"key": "资源别名",
+			"type": "string",
+			"val": "油管",
+			"note": "这里是定义资源别名，不懂别改"
+		},
+		"apiKey": {
+			"key": "Api Key",
+			"type": "string",
+			"val": "",
+			"note": "需要申请YouTube开发者v3 api key"
+		},
+		"domain": {
+			"key": "采集接口",
+			"type": "string",
+			"val": "https://www.googleapis.com/youtube/v3/search"
+		}
+	}
+}
