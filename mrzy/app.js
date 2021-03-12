@@ -152,7 +152,7 @@ let getCurVideoData = async (v_info, conf, videoInfoColl, videoListColl, confCol
 		let v_sub_region = (v_info.area && typeof v_info.area === 'string') ? v_info.area.split(/\/|-|\s|,|·|\s/g) : [""];
 
 		let insertInfo = {
-			"videoTitle" : filterXSS(v_info.name.trim()),
+			"videoTitle" : v_info.name.trim(),
 		    "director" : newV_dir.join(','),
 		    "videoImage" : v_info.pic,
 		    "poster" : "",
