@@ -74,9 +74,10 @@ let runStorageData = async (list, zyAlias, idsChannel, videoInfoColl, videoListC
 
 		// 当前视频是否已经入库
 		let curVideoFindResult = await videoInfoColl.findOne({videoTitle: curVideoTitle});
-		// 当前视频已经入库，跳过
+		// 当前视频已经入库，直接切入另一个频道。因为key配额有限
 		if(curVideoFindResult){
-			continue;
+			return false
+			// continue;
 		}
 
 
@@ -125,6 +126,8 @@ let runStorageData = async (list, zyAlias, idsChannel, videoInfoColl, videoListC
 				console.log(`入库失败，地址：https://www.youtube.com/embed/${arg.id.videoId}`);
 			});
 	}
+	// 如何在这返回true，说明当前的频道视频没有被采集
+	return true
 }
 // 获取视频
 let getVideoListData = async (Sconfig, videoInfoColl, videoListColl, confColl, otherColl) => {
@@ -155,8 +158,13 @@ let getVideoListData = async (Sconfig, videoInfoColl, videoListColl, confColl, o
 		let nextPageToken = curChannelData.nextPageToken;
 
 		// 先存下第一页的
-		await runStorageData(curChannelData.items, zyAlias, idsChannel, videoInfoColl, videoListColl, confColl, otherColl);
+		let isNext = await runStorageData(curChannelData.items, zyAlias, idsChannel, videoInfoColl, videoListColl, confColl, otherColl);
 
+		// false 说明已经入库了，跳过，开始下一个频道，节省配额
+		if(!isNext){
+			continue;
+		}
+		// 就一页，直接开始下一个频道
 		if(maxPage < 2){
 			continue;
 		}
@@ -170,7 +178,11 @@ let getVideoListData = async (Sconfig, videoInfoColl, videoListColl, confColl, o
 			curPageResult = curPageResult.data;
 			nextPageToken = curPageResult.nextPageToken;
 			// 开始存储
-			await runStorageData(curPageResult.items, zyAlias, idsChannel, videoInfoColl, videoListColl, confColl, otherColl);
+			let isNext = await runStorageData(curPageResult.items, zyAlias, idsChannel, videoInfoColl, videoListColl, confColl, otherColl);
+			// false 说明已经入库了，跳过，开始下一个频道，节省配额
+			if(!isNext){
+				break;
+			}
 			// 采集间隔
 			await new Promise((resolve, reject) => {
 				setTimeout(() => {
