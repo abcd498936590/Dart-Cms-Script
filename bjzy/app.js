@@ -12,7 +12,7 @@ const { mixinsScriptConfig, getBjDate, dateStringify, filterXSS } = require('../
 
 let sNameGroup = null; // 源名称组
 let allPluck = false;  // 是否双向采集
-let sTypeGroup = null; // 绑定的分类
+let sTypeGroup = {};   // 绑定的分类
 let sKeysGroup = null; // 源分类判断 vals
 let SValsGroup = null; // 源分类判断 keys
 let interval = 0;      // 间隔时间
@@ -103,9 +103,10 @@ let sourceManage = async (sList, videoListColl, pid, Sconf) => {
 }
 // 每一条数据
 let getCurVideoData = async (v_info, Sconf, videoInfoColl, videoListColl, confColl, otherColl) => {
-
+	// 资源网尼玛各种空格
+	let curVTypeKey = v_info.type.trim();
 	// 先判断当前视频所在的分类是否绑定了，未绑定，直接略过，绑定则查看绑定的分类是否正确
-	let isBindType = (sTypeGroup[v_info.type]).trim();
+	let isBindType = (sTypeGroup[curVTypeKey]).trim();
 	// 不存在 => 未绑定，存在不是字符串，存在，是字符串，但是id长度不符合要求
 	if(!isBindType || typeof isBindType !== 'string' || typeof isBindType === 'string' && isBindType.length !== 24){
 		return
@@ -208,53 +209,88 @@ let testYear = (yStr, config) => {
 	}
 	return yStr
 }
-let getVideoListData = async (maxPageLen, Sconf, videoInfoColl, videoListColl, confColl, otherColl) => {
+let getVideoListData = async (filterBindTypeList, Sconf, videoInfoColl, videoListColl, confColl, otherColl) => {
+	// 采集间隔时间（秒）
+	let interValNum = interval * 1000;
 
+	for(let typeItem of filterBindTypeList){
 
-	for(var i=1; i<=maxPageLen; i++){
+		let maxPageLen = 2;
 
-		let bool = true;
+		page:
 
-		while(bool){
+		for(var i=1; i<=maxPageLen; i++){
 
-			let body = await http(`${Sconf.options.domain.val}?ac=videolist&pg=${i}&h=${Sconf.options.h.val}`);
-			if(!body){
-				console.log(`列表页无内容，地址：${Sconf.options.domain.val}?ac=videolist&pg=${i}&h=${Sconf.options.h.val}`);
-				continue;
-			}
-			let list = await new Promise((res, rej)=>{
-				try{
-			   		to_json(body.data, function (error, data){
-			   			if(error){
-			   				return res(false)
-			   			}
-			   			// 正常
-			   			res(data.rss.list.video);
-			   		})
-				}catch(err){
-					res(false)
+			let bool = true;
+			let once = false;
+
+			while(bool){
+
+				let body = await http(`${Sconf.options.domain.val}?ac=videolist&t=${typeItem.typeId}&pg=${i}&h=${Sconf.options.h.val}`);
+				if(!body){
+					console.log(`列表页无内容，地址：${Sconf.options.domain.val}?ac=videolist&t=${typeItem.typeId}&pg=${i}&h=${Sconf.options.h.val}`);
+					continue;
 				}
-		   	});
-		   	// 是否页面又错误输出，无法解析
-		   	if(!list){
-		   		continue;
-		   	}
+				// 第一次，得总页数和运行第一次结果，二合一
+				if(i === 1 && !once){
+				   	let httpResult = await new Promise((res, rej)=>{
+				   		to_json(body.data, function (error, data){
+				   			if(error){
+				   				return res({pagecount: 0})
+				   			}
+				   			// 正常
+				   			res(data.rss.list.$);
+				   		})
+				   	})
+				   	let numMax = Number(httpResult.pagecount);
+				   	// 如果当前分类没有内容，直接跳过
+				   	if(!numMax){
+				   		break page;
+				   	}
+					maxPageLen = numMax;
+					once = true;
+				}
+				let list = await new Promise((res, rej)=>{
+					try{
+				   		to_json(body.data, function (error, data){
+				   			if(error){
+				   				return res(false)
+				   			}
+				   			// 正常
+				   			res(data.rss.list.video);
+				   		})
+					}catch(err){
+						res(false)
+					}
+			   	});
+			   	// 是否页面又错误输出，无法解析
+			   	if(!list){
+			   		continue;
+			   	}
+			   	// 如果只有一项，小心包装
+			   	if(!list['0']){
+			   		list = {
+			   			'0': list
+			   		}
+			   	}
 
-			for(let attr in list){
-				let item = list[attr];
-				await getCurVideoData(item, Sconf, videoInfoColl, videoListColl, confColl, otherColl);
-				console.log(`第 ${i} 页，共 ${maxPageLen} 页，第 ${Number(attr)+1} 条，名称： ${list[attr].name.trim()}`);
-				// 采集频率
-				let interValNum = interval * 1000;
-				await new Promise((resolve, reject) => {
-					setTimeout(() => {
-						return resolve();
-					}, interValNum);
-				})
+				for(let attr in list){
+					let item = list[attr];
+					await getCurVideoData(item, Sconf, videoInfoColl, videoListColl, confColl, otherColl);
+					console.log(`第 ${i} 页，共 ${maxPageLen} 页，第 ${Number(attr)+1} 条，名称： ${list[attr].name.trim()}`);
+				}
+				break;
 			}
-			break;
+			// 采集频率
+			await new Promise((resolve, reject) => {
+				setTimeout(() => {
+					return resolve();
+				}, interValNum);
+			})
 		}
+
 	}
+
 }
 // 导出
 let mainFn = async (DB) => {
@@ -279,25 +315,6 @@ let mainFn = async (DB) => {
 	   	mixinsScriptConfig(scriptAlias, {state: true, pid: process.pid, runTime: dateStringify(isBJtime)});
 
 		let Sconf = runConf;
-		// 采集源 首页
-		let httpResult = await http(`${Sconf.options.domain.val}?ac=videolist&h=${Sconf.options.h.val}`).catch(err => {
-	   		reject(new Error('发生错误，位置：首页'))
-	   	});
-	   	// 获取总页码
-	   	if(!httpResult){
-	   		return reject()
-	   	}
-	   	httpResult = await new Promise((res, rej)=>{
-	   		to_json(httpResult.data, function (error, data){
-	   			if(error){
-	   				return rej()
-	   			}
-	   			// 正常
-	   			res(data.rss.list.$);
-	   		})
-	   	}).catch(()=>{
-	   		reject()
-	   	})
 	   	let timeout = Sconf.timeout * 60000;
 	   	// 最大采集时间
 	   	setTimeout(() => {
@@ -310,15 +327,21 @@ let mainFn = async (DB) => {
 	   	// 存配置
 	   	sNameGroup = JSON.parse(Sconf.options.group.val);
 	   	allPluck = Sconf.options.allPluck.val;
-	   	sTypeGroup = Sconf.options.bindType.list;
 	   	sKeysGroup = JSON.parse(Sconf.options.allPluck.sKey);
 	   	SValsGroup = JSON.parse(Sconf.options.allPluck.sVal);
 	   	interval = Sconf.options.interval.val;
 
-	   	let maxPage = Number(httpResult.pagecount);
+	   	// 筛选 已经绑定分类的
+	   	let filterBindTypeList = Sconf.options.bindType.list.filter((item) => {
+	   		if(typeof item.bindId === "string" && item.bindId.length === 24){
+	   			let objKey = item.name;
+	   			sTypeGroup[objKey] = item.bindId;
+	   			return true
+	   		}
+	   	})
 
 	   	console.log('采集开始！');
-	   	await getVideoListData(maxPage, Sconf, videoInfoColl, videoListColl, confColl, otherColl);
+	   	await getVideoListData(filterBindTypeList, Sconf, videoInfoColl, videoListColl, confColl, otherColl);
 	   	console.log('采集完成！');
 
 		resolve();

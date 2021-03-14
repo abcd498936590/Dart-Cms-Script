@@ -10,7 +10,7 @@ const entitiesCode = new Entities();
 const { mixinsScriptConfig, getBjDate, dateStringify, filterXSS } = require('../../utils/tools')
 
 
-let sTypeGroup = null; // 绑定的分类
+let sTypeGroup = {};   // 绑定的分类
 let interval = 0;      // 间隔时间
 
 // 封装一手request方法
@@ -42,9 +42,10 @@ async function http(url){
 // 获取源
 // 每一条数据
 let getCurArtData = async (artItem, Sconf, articleInfo, articleList, configData, otherColl) => {
-
+	// 资源网尼玛各种空格
+	let curATypeKey = artItem.type_name.trim();
 	// 先判断当前视频所在的分类是否绑定了，未绑定，直接略过，绑定则查看绑定的分类是否正确
-	let isBindType = (sTypeGroup[artItem.type_name]).trim();
+	let isBindType = (sTypeGroup[curATypeKey]).trim();
 	// 不存在 => 未绑定，存在不是字符串，存在，是字符串，但是id长度不符合要求
 	if(!isBindType || typeof isBindType !== 'string' || typeof isBindType === 'string' && isBindType.length !== 24){
 		return
@@ -111,48 +112,74 @@ let getCurArtData = async (artItem, Sconf, articleInfo, articleList, configData,
 	}
 
 }
-let getArtListData = async (maxPageLen, Sconf, articleInfo, articleList, configData, otherColl) => {
+let getArtListData = async (filterBindTypeList, Sconf, articleInfo, articleList, configData, otherColl) => {
+	// 采集间隔时间（秒）
+	let interValNum = interval * 1000;
 
-	for(var i=1; i<=maxPageLen; i++){
+	for(let typeItem of filterBindTypeList){
 
-		let bool = true;
+		let maxPageLen = 2;
 
-		while(bool){
+		page:
 
-			let body = await http(`${Sconf.options.domain.val}?ac=list&pg=${i}&h=${Sconf.options.h.val}`);
-			if(!body){
-				console.log(`列表页无内容，地址：${Sconf.options.domain.val}?ac=list&pg=${i}&h=${Sconf.options.h.val}`);
-				continue;
-			}
-			let list = await new Promise((res, rej)=>{
-				try{
-			   		if(body.data.code == 1){
-			   			return res(body.data.list);
-			   		}
-			   		return res(false);
-				}catch(err){
-					res(false)
-				}
-		   	});
+		for(var i=1; i<=maxPageLen; i++){
 
-		   	// 是否页面又错误输出，无法解析
-		   	if(!list){
-		   		continue;
-		   	}
+			let bool = true;
+			let once = false;
 
-			for(let [index, item] of list.entries()){
-				await getCurArtData(item, Sconf, articleInfo, articleList, configData, otherColl);
-				console.log(`第 ${i} 页，共 ${maxPageLen} 页，第 ${index+1} 条，名称： ${item.art_name.trim()}`);
-				// 采集频率
-				let interValNum = interval * 1000;
+			while(bool){
+
+				let body = await http(`${Sconf.options.domain.val}?ac=list&t=${typeItem.typeId}&pg=${i}&h=${Sconf.options.h.val}`);
+				// 采集频率 - 文章不同，需要再次请求详情，所以采集间隔要换位置
 				await new Promise((resolve, reject) => {
 					setTimeout(() => {
 						return resolve();
 					}, interValNum);
 				})
+				if(!body){
+					console.log(`列表页无内容，地址：${Sconf.options.domain.val}?ac=list&t=${typeItem.typeId}&pg=${i}&h=${Sconf.options.h.val}`);
+					continue;
+				}
+				// 第一次，得总页数和运行第一次结果，二合一
+				if(i === 1 && !once){
+				   	let numMax = Number(body.data.pagecount);
+				   	// 如果当前分类没有内容，直接跳过
+				   	if(!numMax){
+				   		break page;
+				   	}
+					maxPageLen = numMax;
+					once = true;
+				}
+				let list = await new Promise((res, rej)=>{
+					try{
+				   		if(body.data.code == 1){
+				   			return res(body.data.list);
+				   		}
+				   		return res(false);
+					}catch(err){
+						res(false)
+					}
+			   	});
+
+			   	// 是否页面又错误输出，无法解析
+			   	if(!list){
+			   		continue;
+			   	}
+
+				for(let [index, item] of list.entries()){
+					await getCurArtData(item, Sconf, articleInfo, articleList, configData, otherColl);
+					console.log(`第 ${i} 页，共 ${maxPageLen} 页，第 ${index+1} 条，名称： ${item.art_name.trim()}`);
+					// 采集频率 - 文章详情里面还有一次请求，所以这里还需要加入采集间隔
+					await new Promise((resolve, reject) => {
+						setTimeout(() => {
+							return resolve();
+						}, interValNum);
+					})
+				}
+				break;
 			}
-			break;
 		}
+
 	}
 }
 // 导出
@@ -178,18 +205,6 @@ let mainFn = async (DB) => {
 	   	mixinsScriptConfig(scriptAlias, {state: true, pid: process.pid, runTime: dateStringify(isBJtime)});
 
 		let Sconf = runConf;
-		// 采集源 首页
-		let httpResult = await http(`${Sconf.options.domain.val}?ac=list&h=${Sconf.options.h.val}`).catch(err => {
-	   		reject(new Error('发生错误，位置：首页'))
-	   	});
-	   	httpResult = await new Promise((res, rej)=>{
-	   		if(httpResult.data.code == 1){
-	   			return res(httpResult.data);
-	   		}
-	   		rej();
-	   	}).catch(()=>{
-	   		reject()
-	   	})
 	   	let timeout = Sconf.timeout * 60000;
 	   	// 最大采集时间
 	   	setTimeout(() => {
@@ -200,13 +215,20 @@ let mainFn = async (DB) => {
 	   	let articleList = DB.collection('article_list');
 	   	let otherColl = DB.collection('other');
 
-	   	let maxPage = Number(httpResult.pagecount);
 	   	// 存配置
-	   	sTypeGroup = Sconf.options.bindType.list;
 	   	interval = Sconf.options.interval.val;
 
+	   	// 筛选 已经绑定分类的
+	   	let filterBindTypeList = Sconf.options.bindType.list.filter((item) => {
+	   		if(typeof item.bindId === "string" && item.bindId.length === 24){
+	   			let objKey = item.name;
+	   			sTypeGroup[objKey] = item.bindId;
+	   			return true
+	   		}
+	   	})
+
 	   	console.log('采集开始！');
-	   	await getArtListData(maxPage, Sconf, articleInfo, articleList, configData, otherColl);
+	   	await getArtListData(filterBindTypeList, Sconf, articleInfo, articleList, configData, otherColl);
 	   	console.log('采集完成！');
 
 		resolve();
