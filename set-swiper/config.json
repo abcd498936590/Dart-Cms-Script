@@ -1,0 +1,18 @@
+{
+	"file": "app.js",
+	"name": "自动爬取搬运狗轮播图",
+	"note": "自动爬取轮播图，并且设置轮播图",
+	"alias": "set-swiper",
+	"state": false,
+	"timeout": 10,
+	"pid": 0,
+	"runTime": "",
+	"options": {
+		"maxLen": {
+			"key": "轮播个数",
+			"type": "number",
+			"val": 20,
+			"note": "请注意，不要超过搬运狗官方的数量"
+		}
+	}
+}
