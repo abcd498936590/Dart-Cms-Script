@@ -11,7 +11,7 @@
 
 
 ## 视频解答
-<iframe webkitallowfullscreen="" mozallowfullscreen="" allowfullscreen="" style="height: 500px;width: 100%;border: none;width: 100%;background: #343434;"  src="https://www.youtube.com/embed/DBWTp8MalUs" />
+[![Watch the video](https://i.imgur.com/vKb2F1B.png)](https://www.youtube.com/embed/DBWTp8MalUs)
 
 ## Dart-Cms插件
 
