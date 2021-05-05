@@ -1,0 +1,211 @@
+{
+	"file": "app.js",
+	"name": "恐怖鸭资源网",
+	"note": "恐怖鸭视频采集插件，采集视频。",
+	"alias": "kbvod",
+	"state": false,
+	"timeout": 180,
+	"pid": 0,
+	"runTime": "",
+	"options": {
+		"interval": {
+			"key": "采集频率",
+			"type": "number",
+			"val": 1,
+			"note": "有的资源网限制频率，自行定夺。单位（秒）"
+		},
+		"h": {
+			"key": "采集周期",
+			"type": "number",
+			"val": 0
+		},
+		"analysis": {
+			"key": "解析地址",
+			"type": "string",
+			"val": "https://jx.yingxiangbao.cn/vip.php?url="
+		},
+		"domain": {
+			"key": "采集接口",
+			"type": "string",
+			"val": "https://kongbuya.com/api.php/provide/vod/at/xml/"
+		},
+		"keys": {
+			"key": "播放别名",
+			"type": "string",
+			"val": "{\"qq\":\"腾讯视频\",\"qiyi\":\"爱奇艺\",\"youku\":\"优酷视频\",\"mgtv\":\"芒果TV\",\"sohu\":\"搜狐视频\",\"pptv\":\"PP视频\",\"letv\":\"乐视视频\",\"iqiyi\":\"爱奇艺\",\"bilibili\":\"B站\"}",
+			"note": "这里不懂别乱改就行"
+		},
+		"bindType": {
+			"key": "绑定分类",
+			"type": "bindType",
+			"note": "不要随意的删除分类，否则导致采集不能正常入库",
+			"list": [
+				{
+					"name": "电影",
+					"typeId": 1,
+					"bindId": ""
+				},
+				{
+					"name": "连续剧",
+					"typeId": 2,
+					"bindId": ""
+				},
+				{
+					"name": "综艺",
+					"typeId": 3,
+					"bindId": ""
+				},
+				{
+					"name": "动漫",
+					"typeId": 4,
+					"bindId": ""
+				},
+				{
+					"name": "动作片",
+					"typeId": 6,
+					"bindId": ""
+				},
+				{
+					"name": "喜剧片",
+					"typeId": 7,
+					"bindId": ""
+				},
+				{
+					"name": "爱情片",
+					"typeId": 8,
+					"bindId": ""
+				},
+				{
+					"name": "科幻片",
+					"typeId": 9,
+					"bindId": ""
+				},
+				{
+					"name": "恐怖片",
+					"typeId": 10,
+					"bindId": ""
+				},
+				{
+					"name": "剧情片",
+					"typeId": 11,
+					"bindId": ""
+				},
+				{
+					"name": "战争片",
+					"typeId": 12,
+					"bindId": ""
+				},
+				{
+					"name": "国产剧",
+					"typeId": 13,
+					"bindId": ""
+				},
+				{
+					"name": "港台剧",
+					"typeId": 14,
+					"bindId": ""
+				},
+				{
+					"name": "日韩剧",
+					"typeId": 15,
+					"bindId": ""
+				},
+				{
+					"name": "欧美剧",
+					"typeId": 16,
+					"bindId": ""
+				},
+				{
+					"name": "惊悚片",
+					"typeId": 20,
+					"bindId": ""
+				},
+				{
+					"name": "犯罪片",
+					"typeId": 21,
+					"bindId": ""
+				},
+				{
+					"name": "悬疑片",
+					"typeId": 22,
+					"bindId": ""
+				},
+				{
+					"name": "战争片",
+					"typeId": 23,
+					"bindId": ""
+				},
+				{
+					"name": "动画片",
+					"typeId": 24,
+					"bindId": ""
+				},
+				{
+					"name": "家庭片",
+					"typeId": 25,
+					"bindId": ""
+				},
+				{
+					"name": "冒险片",
+					"typeId": 26,
+					"bindId": ""
+				},
+				{
+					"name": "奇幻片",
+					"typeId": 27,
+					"bindId": ""
+				},
+				{
+					"name": "武侠片",
+					"typeId": 28,
+					"bindId": ""
+				},
+				{
+					"name": "纪录片",
+					"typeId": 29,
+					"bindId": ""
+				},
+				{
+					"name": "古装片",
+					"typeId": 30,
+					"bindId": ""
+				},
+				{
+					"name": "泰国剧",
+					"typeId": 31,
+					"bindId": ""
+				},
+				{
+					"name": "其他剧",
+					"typeId": 32,
+					"bindId": ""
+				},
+				{
+					"name": "青春片",
+					"typeId": 33,
+					"bindId": ""
+				},
+				{
+					"name": "灾难片",
+					"typeId": 34,
+					"bindId": ""
+				},
+				{
+					"name": "B站",
+					"typeId": 35,
+					"bindId": ""
+				},
+				{
+					"name": "番剧",
+					"typeId": 36,
+					"bindId": ""
+				},
+				{
+					"name": "国创",
+					"typeId": 37,
+					"bindId": ""
+				}
+			]
+		}
+	}
+}

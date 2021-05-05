@@ -2,7 +2,7 @@
 	"file": "app.js",
 	"name": "恐怖鸭资源网",
 	"note": "恐怖鸭文章采集插件，采集文章。",
-	"alias": "kbyzy",
+	"alias": "kbart",
 	"state": false,
 	"timeout": 180,
 	"pid": 0,
@@ -23,7 +23,7 @@
 		"domain": {
 			"key": "采集接口",
 			"type": "string",
-			"val": "https://ya.kongbuya.com/api.php/provide/art/"
+			"val": "https://kongbuya.com/api.php/provide/art/"
 		},
 		"bindType": {
 			"key": "绑定分类",
