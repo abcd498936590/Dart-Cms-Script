@@ -10,6 +10,9 @@
 * [electron-audio-create](https://github.com/abcd498936590/electron-audio-create)  =>> 使用 React + Electron 开发的 AI 配音软件
 
 
+## 视频解答
+[![Watch the video](https://i.imgur.com/vKb2F1B.png)](https://www.youtube.com/embed/DBWTp8MalUs)
+
 ## Dart-Cms插件
 
 1：如何使用插件？
